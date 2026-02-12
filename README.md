@@ -45,6 +45,15 @@ you can now use a tool like [direnv](https://direnv.net) or just `source` the fi
 
 ### 2. creating the network
 to create a network you will need a latency matrix. you can generate a sample using [bonsai](https://codelab.fct.unl.pt/di/computer-systems/bonsai) or using the [web version](https://bonsai.d464.sh).
+Alternatively, you can use the `oar-p2p gen` command, by providing a config file, or simply the number of nodes which uses default values for generation:
+
+```bash
+oar-p2p gen --nodes <N> # matrix for N nodes, with generation defaults
+oar-p2p gen --config-file <config_file> # matrix based on the given config file
+```
+
+This command creates an `output/` directory with a `matrix.txt` file.
+
 Here is an example matrix:
 ```
 cat << EOF > latency.txt

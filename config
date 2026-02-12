@@ -1,0 +1,17 @@
+## REQUIRED: Define the network size
+nodes: 10
+
+## OPTIONAL: Customize the latency and node generation methods
+generators:
+    latency:
+        estimator: bonsai # possible values: bonsai (default), fixed, random, normal
+        mode: most_likely # only applicable for bonsai estimator; possible values: most_likely (default), random, mean, median           
+        # other options for fixed, random, normal estimators can be added here
+        # for fixed estimator: value: 50
+        # for random estimator: min_value: 10, max_value: 100, seed: 42
+        # for normal estimator: mean: 50, std: 10, seed: 42
+
+    
+    node:
+        dataset: ipfs-nodes # possible values: ipfs-nodes, ripe (default)
+        method: multinomial # possible values: multinomial (default), uniform

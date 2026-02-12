@@ -1,21 +1,19 @@
 #![feature(exit_status_error)]
 use std::{
-    collections::{HashMap, HashSet},
-    net::Ipv4Addr,
-    path::{Path, PathBuf},
-    process::Output,
-    time::{Duration, Instant, SystemTime},
+    collections::{HashMap, HashSet}, fs, net::Ipv4Addr, path::{Path, PathBuf}, process::Output, time::{Duration, Instant, SystemTime}
 };
 
 use clap::{Args, Parser, Subcommand};
-use eyre::Context as _;
+use eyre::{Context as _, bail};
 use eyre::Result;
 use machine::Machine;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tokio::{
     io::{AsyncReadExt as _, AsyncWriteExt as _},
     process::Command,
 };
+
+use reqwest::Client;
 
 use crate::{
     address_allocation_policy::AddressAllocationPolicy,
@@ -32,6 +30,7 @@ pub mod oar;
 pub mod signal;
 
 const CONTAINER_IMAGE_NAME: &str = "local/oar-p2p-networking";
+const BONSAI_URL: &str = "https://bonsai.westeurope.cloudapp.azure.com/";
 
 #[derive(Debug, Parser)]
 #[command(version = env!("GIT_VERSION"))]
@@ -66,6 +65,7 @@ struct Common {
 
 #[derive(Debug, Subcommand)]
 enum SubCmd {
+    Gen(GenArgs),
     Net(NetArgs),
     Run(RunArgs),
     Clean(CleanArgs),
@@ -207,6 +207,26 @@ struct CleanArgs {
     common: Common,
 }
 
+#[derive(Debug, Args)]
+struct GenArgs {
+    #[clap(long)]
+    config_file: Option<PathBuf>,
+
+    #[clap(long)]
+    nodes: Option<u16>
+}
+
+#[derive(Serialize)]
+struct RequestBody {
+    config: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct ResponseBody {
+    #[serde(rename = "matrix.txt")]
+    matrix_txt: String
+}
+
 #[derive(Debug, Clone)]
 struct MachineConfig {
     machine: Machine,
@@ -229,6 +249,7 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     match cli.cmd {
+        SubCmd::Gen(args) => cmd_gen(args).await,
         SubCmd::Net(args) => match args.cmd {
             NetSubCmd::Up(args) => cmd_net_up(args).await,
             NetSubCmd::Down(args) => cmd_net_down(args).await,
@@ -516,6 +537,33 @@ async fn cmd_clean(args: CleanArgs) -> Result<()> {
     machines_net_container_build(&context, &machines).await?;
     machines_containers_clean(&context, &machines).await?;
     machines_clean(&context, &machines).await?;
+    Ok(())
+}
+
+async fn cmd_gen(args: GenArgs) -> Result<()> {
+    let config = if let Some(path) = args.config_file {
+        fs::read_to_string(path)?
+    } else if let Some(nodes) = args.nodes {
+        // template config — adjust to your actual expected format
+        format!("nodes: {}", nodes)
+        } else {
+            bail!("either --config-file or --nodes must be provided");
+        };
+
+    let client: reqwest::Client = Client::new();
+
+    let res = client
+        .post(BONSAI_URL)
+        .json(&RequestBody { config })
+        .send()
+        .await?
+        .error_for_status()?; // fail on non-2xx
+
+    let body: ResponseBody = res.json().await?;
+
+    fs::create_dir_all("output")?;
+    fs::write(Path::new("output/matrix.txt"), body.matrix_txt)?;
+
     Ok(())
 }
 
