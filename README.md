@@ -48,8 +48,8 @@ to create a network you will need a latency matrix. you can generate a sample us
 Alternatively, you can use the `oar-p2p gen` command, by providing a config file, or simply the number of nodes which uses default values for generation:
 
 ```bash
-oar-p2p gen --nodes <N> # matrix for N nodes, with generation defaults
-oar-p2p gen --config-file <config_file> # matrix based on the given config file
+oar-p2p gen --nodes <N> --output-path <OUTPUT_PATH> # matrix for N nodes, with generation defaults
+oar-p2p gen --config-file <config_file> --output-path <OUTPUT_PATH> # matrix based on the given config file
 ```
 
 This command creates an `output/` directory with a `matrix.txt` file.
