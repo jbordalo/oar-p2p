@@ -163,7 +163,7 @@ struct RunArgs {
     /// directory where all the log files will be placed.
     ///
     /// this directory will be created if it does not exist.
-    /// for each container, there will be a seperate file for the stdout and sterr.
+    /// for each container, there will be a separate file for the stdout and sterr.
     #[clap(long)]
     output_dir: PathBuf,
 
@@ -213,7 +213,10 @@ struct GenArgs {
     config_file: Option<PathBuf>,
 
     #[clap(long)]
-    nodes: Option<u16>
+    nodes: Option<u16>,
+
+    #[clap(long)]
+    output_path: PathBuf
 }
 
 #[derive(Serialize)]
@@ -562,7 +565,13 @@ async fn cmd_gen(args: GenArgs) -> Result<()> {
     let body: ResponseBody = res.json().await?;
 
     fs::create_dir_all("output")?;
-    fs::write(Path::new("output/matrix.txt"), body.matrix_txt)?;
+    if let Some(parent) = args.output_path.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+
+    fs::write(&args.output_path, body.matrix_txt)?;
 
     Ok(())
 }
